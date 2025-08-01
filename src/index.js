@@ -8,6 +8,7 @@ import dotenv from "dotenv";                            //-> ES6 syntax
     // but it requires an addition of experimental feature in package.json file
     // explanation -> https://youtu.be/w4z8Py-UoNk?si=OcD_NEJZH7r9uw3I , from 32:33 to
 import connectDB from "./db/index.js";
+import { app } from "./app.js";
 
 dotenv.config({
     path:'./env'

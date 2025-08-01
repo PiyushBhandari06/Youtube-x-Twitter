@@ -33,5 +33,24 @@ app.use(cookieParser())
 //there are ways to keep secured cookies in user's browser that can only be read & remove by our server
 
 
+//🔘routes importing:-
+import userRouter from "./routes/user.routes.js"        
+    //🔴Imp point-> you can define import name acc to your wish(userRouter here), but only when you have exported the file in default export
+
+
+//🔘routes declaration:-
+// app.get()       //we can't use this here
+                   //we are only able to use this syntax when we are defining the routes and controller in it, but now we have defined route in a separate file.
+
+// app.use("/users", userRouter)          //now to get router, we will need to use middleware syntax[that is use()] 
+    //working -> //http://localhost:8000/users -> this gives controll to userRouter method defined in user.routes.js file
+    
+
+    //An industry standard practice is: 
+    //whenever you are defining your api, define its url such that it consists : 'you are defining api using - api' & 'the version of your api - v1/v2..'
+app.use("/api/v1/users", userRouter)
+    //working -> //http://localhost:8000/api/v1users
+
+
 // export default app;
 export { app }
