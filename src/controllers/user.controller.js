@@ -4,7 +4,6 @@ import {apiError} from "../utils/apiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {apiResponse} from "../utils/apiResponse.js";
-import { response } from "express";
 
 const registerUser = asyncHandler( async (req,res) => {
     // res.status(200).json({      //The response is already being sent using res.status().json(). In Express, once you send a response (with res.send(), res.json(), etc.), that ends the request lifecycle.
@@ -27,7 +26,9 @@ const registerUser = asyncHandler( async (req,res) => {
     // In Express.js, req.body is used to access the data sent by the client in the body of the HTTP request. This is commonly used when handling: 
     // Form submissions (application/x-www-form-urlencoded) & JSON data (application/json)   
     const {fullname, email, username, password} = req.body
-    console.log("email:", email);  //checkpoint !
+    // console.log("email:", email);  //checkpoint !
+    // console.log(req.body);
+
     
 
     //2.
@@ -39,12 +40,12 @@ const registerUser = asyncHandler( async (req,res) => {
 
     // Method 2:
     if([fullname, email, username, password].some((field)=> field?.trim() === "")){
-        throw new apiError(400, "fullname is required")
+        throw new apiError(400, "All fields (fullname, email, username, password) are required")
     }
 
 
     //3.
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{username}, {email}]   //finds data related to either username or email
     })
     
@@ -59,9 +60,21 @@ const registerUser = asyncHandler( async (req,res) => {
                   // but since you have added a middleware in user.routes.js file, so this middlware also provides you some more access(basically provides more fields in req.)
     //the way expressJS provides us req.body by-default,
     //in the same way Multer provides us req.files by-default.
-    const avatarLocalPath = req.files?.avatar[0]?.path;          //maybe we have more access or maybe we may not, always use ?(optinal), a good practice !
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
+    // console.log(req.files);
+    
+    // modern way:-                                                  //maybe we have that more access or maybe we may not,so always use -> ?(optinal), its a good practice !
+    const avatarLocalPath = req.files?.avatar[0]?.path;              //we used modern way in this, since we are handling the condition it must satisy ahead, unlike coverImage, that's why in coverImage we had to go with classic conditional way.
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+
+    // classic conditional way:-
+    let coverImageLocalPath;
+        if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path
+        }
+    
+        //this is the condition that we are handling, that's why we used modern way in avatar ! 
     if (!avatarLocalPath) {
         throw new apiError(400, "avatar is required")
     }
@@ -77,7 +90,7 @@ const registerUser = asyncHandler( async (req,res) => {
 
 
     // 6.
-    await User.create({
+    const newUser = await User.create({
         fullname,
         avatar: avatar.url,  //we have uploaded avatar on cloudinary that returns a response(an object) but we don't have to send the whole object in our db, so we just save object that has only url of avatar
         coverImage: coverImage?.url || "",
@@ -88,7 +101,7 @@ const registerUser = asyncHandler( async (req,res) => {
 
 
     // 7.
-    const createdUser = await User.findById(User._id).select(
+    const createdUser = await User.findById(newUser._id).select(
         // select method by-default selects all the fields of the User object created in db, therfore we remove those fields which we don't want
         "-password -refreshToken" //this is the syntac
     )
@@ -103,7 +116,7 @@ const registerUser = asyncHandler( async (req,res) => {
     // 9.
     // return res.status(201).json({createdUser})    //we could have done this way too, but
     return res.status(201).json(                     //we have pre-defined the architecture of json response
-        new apiResponse(200, createdUser, "user registered successfully !")          //u may ask, why we gave statuscode again ? when we had res.status(201) right! so basically postman handles this one -> res.status(201) in a specific place(you might have seen where postman shows its statuscode)so that's why !
+        new apiResponse(201, createdUser, "user registered successfully !")          //u may ask, why we gave statuscode again ? when we had res.status(201) right! so basically postman handles this one -> res.status(201) in a specific place(you might have seen where postman shows its statuscode)so that's why !
     )
 } )
 
