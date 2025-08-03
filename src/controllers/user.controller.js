@@ -1,9 +1,29 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-//asynchandler is the wrapper we are using here ! it is a High Order Function
+//asynchandler is the wrapper we are using here to handle web requests! it is a High Order Function
 import {apiError} from "../utils/apiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {apiResponse} from "../utils/apiResponse.js";
+
+const generateAccessAndRefreshTokens = async (userId)=>{
+    try {
+        // finds user based on Id
+        const user = await User.findById(userId)
+
+        // generates access & refresh tokens
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        // save refreshToken in database too:
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false})
+
+        return{accessToken, refreshToken}
+
+    } catch (error) {
+        throw new apiError(500, "Tokens regarding issue occurred !")
+    }
+}
 
 const registerUser = asyncHandler( async (req,res) => {
     // res.status(200).json({      //The response is already being sent using res.status().json(). In Express, once you send a response (with res.send(), res.json(), etc.), that ends the request lifecycle.
@@ -120,4 +140,107 @@ const registerUser = asyncHandler( async (req,res) => {
     )
 } )
 
-export {registerUser}
+const loginUser = asyncHandler(async (req,res)=> {
+    // algorithm:-
+    // 1. get data -> req.body
+    // 2. check username or email
+    // 3. find the user 
+    // 4. password check 
+    // 5. access & refresh token
+    // 6. send cookies
+
+    // 1.
+    const {email, username, password} = req.body
+    // console.log(email);
+
+
+    // 2.
+    if (!username && !email) {
+        throw new apiError(400, "username or email is required")
+    }
+    // Here is an alternative of above code based on logic discussed in video:
+    // if (!(username || email)) {
+    //     throw new ApiError(400, "username or email is required")
+    // }
+
+
+
+    // 3.
+    const user = await User.findOne({               
+        $or: [{username}, {email}]
+    })
+    if(!user){
+        throw new apiError(404, "User does not exist")
+    }
+     
+    // 4.
+    const isPasswordValid = await user.isPasswordCorrect(password)      //remember to use 'user' and not 'User'
+    if(!isPasswordValid){
+        throw new apiError(401, "Password invalid !")
+    }
+
+    // 5.       //we will use access & refresh tokens alot, so we shld create their methods.
+    const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    // 6.
+    //the 'user' has an empty refresh token, because you have called generateAccessAndRefreshTokens after storing the instance of user model in this user variable
+    //either update the object 
+    // or 
+    // make a new database query:-
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {       //whenever you send cookies, you have to design some options
+        httpOnly: true,     
+        secure: true,
+        //by default-cookies can be modified in the frontend, these options strictly revoke that, & cookies can only be modified in server.
+    }
+
+    //send cookie:-
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken,options )
+    .cookie("refreshToken", refreshToken,options )
+    .json(
+        new apiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken, refreshToken
+                // you may ask, why needed to send these Tokens in json response when already sent thru cookies ?
+                // this is because, what if user want to save these tokens himself !
+            },
+            "User logged In Successfully"
+        )
+    )
+}) 
+
+const logoutUser = asyncHandler(async (req,res)=>{
+    // user.findById(...)           
+    //how do we get data in logoutUser ? we can't make the user fill a form and then we will get data just like we did in loginUser method right !
+    
+    //we will create our own middleware thru which we will handle this problem !
+    await User.findByIdAndUpdate(
+        req.user._id,   //find query
+        {               //update this
+            $set: {                         //mongoDb operator -$set, it updates,sets the values given to it
+                refreshToken: undefined
+            }
+        },
+        {   //what this does is basically, returns the new/updated value, else original will be sent with old refreshToken value
+            new: true
+        }
+    )
+
+    const options = {       
+        httpOnly: true,     
+        secure: true,
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new apiResponse(200, {}, "user logged out successfully"))
+})
+
+
+export {registerUser,loginUser, logoutUser}

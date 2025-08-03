@@ -1,7 +1,7 @@
 // .Then & .catch METHOD :-
 
 const asyncHandler = (requesthandler) => {
-    return (req, res, next) => {        // middleware function that Express can use :
+    return (req, res, next) => {                // middleware function that Express can use :
         // req → The incoming HTTP request.
         // res → The HTTP response object.
         // next → A function used to pass control to the next middleware or error handler. 
