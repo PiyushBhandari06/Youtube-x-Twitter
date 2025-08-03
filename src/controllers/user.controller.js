@@ -331,13 +331,19 @@ const changeCurrentPassword = asyncHandler(async(req, res)=>{
     .json(new apiResponse(200, {}, "Password changed successfully"))
 }) 
 
-
+// Using no db call:- 
 const getCurrentUser = asyncHandler(async (req, res) => {
     // return the user data from req.user
     return res
     .status(200)
     .json(new apiResponse(200, req.user, "Current User fetched successfully"))
 })
+
+// Using db call:-
+// const getCurrentUser = asyncHandler(async (req, res) => {
+//     const user = await User.findById(req.user?._id).select("-password");
+//     res.status(200).json(new apiResponse(200, user, "Current User fetched successfully"));
+// });
 
 const updateAccountDetails = asyncHandler(async (req, res)=> {
     // access user's fullname, email using req.body
@@ -348,7 +354,7 @@ const updateAccountDetails = asyncHandler(async (req, res)=> {
 
     // update user's fullname, email in db
     const user = await User.findByIdAndUpdate(
-        req.user._id, 
+        req.user?._id, 
         {
             $set: {fullname, email}  //we are using $set operator to update the user details
         }, 
@@ -372,6 +378,10 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     if (!avatar.url) {
         throw new apiError(400, "Avatar upload failed")
     }
+    
+    // 🔴TODO :Delete the old avatar from cloudinary if it exists, only after uploading the new avatar.
+    // This can be done by storing the old avatar url in user model and then deleting it.
+    
 
     // update user's avatar in db
     const user = await User.findByIdAndUpdate(
@@ -401,6 +411,10 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     if (!coverImage.url) {
         throw new apiError(400, "Cover Image upload failed")
     }
+
+    // 🔴TODO :Delete the old coverImage from cloudinary if it exists, only after uploading the new coverImage.
+    // This can be done by storing the old coverImage url in user model and then deleting it.
+
 
     // update user's cover image in db
     const user = await User.findByIdAndUpdate(
