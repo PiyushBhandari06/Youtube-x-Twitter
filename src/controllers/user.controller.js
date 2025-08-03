@@ -299,4 +299,133 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     }
 })
 
-export {registerUser,loginUser, logoutUser,refreshAccessToken}
+const changeCurrentPassword = asyncHandler(async(req, res)=>{
+    // access user's oldPassword, newPassword using req.body
+    const {oldPassword, newPassword} = req.body     
+        //you can also add confirmPassword here, but we are not doing that for now, since this can be handled in frontend itself.
+        // const {oldPassword, newPassword, confirmPassword} = req.body     
+        // if (newPassword !== confirmPassword) {
+        //     throw new apiError(400, "newPassword and confirmPassword do not match")
+        // }
+
+    // access user model using req.user
+    // req.user is set in user.routes.js file, where we have created a middleware to access user data from token
+    const user = await User.findById(req.user?._id)
+
+    // check if oldPassword is correct
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    // if oldPassword is not correct:
+    if (!isPasswordCorrect) {
+        throw new apiError(401, "Old Password is incorrect")
+    }
+
+    // oldPassword is correct:
+    user.password = newPassword     // this is being hashed in the User model's pre-save hook
+
+    // save the user
+    await user.save({validateBeforeSave: false})
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, {}, "Password changed successfully"))
+}) 
+
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    // return the user data from req.user
+    return res
+    .status(200)
+    .json(new apiResponse(200, req.user, "Current User fetched successfully"))
+})
+
+const updateAccountDetails = asyncHandler(async (req, res)=> {
+    // access user's fullname, email using req.body
+    const{fullname, email} = req.body
+    if(!fullname || !email){
+        throw new apiError(400, "Please provide all required fields")
+    }
+
+    // update user's fullname, email in db
+    const user = await User.findByIdAndUpdate(
+        req.user._id, 
+        {
+            $set: {fullname, email}  //we are using $set operator to update the user details
+        }, 
+        { new: true }
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, user, "Account details updated successfully"))
+})
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    // to access user's avatar from req.file
+    const avatarLocalPath = req.file?.path              //Imp -> you can directly save this avatarLocalPath in db, but we are not doing that, since we want to upload it on cloudinary first, then save the url in db
+    if (!avatarLocalPath) {
+        throw new apiError(400, "Avatar is required")
+    }
+
+    // upload avatar to cloudinary
+    const avatar = await uploadOnCloudinary(avatarLocalPath)        //returns an object with url and other details
+    if (!avatar.url) {
+        throw new apiError(400, "Avatar upload failed")
+    }
+
+    // update user's avatar in db
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {avatar: avatar.url}  // we are taking the url from the avatar object returned by uploadOnCloudinary
+        },
+        { new: true }
+    ).select("-password")
+
+    return res
+    .status(200)    
+    .json(new apiResponse(200, user, "Avatar updated successfully"))
+
+})
+
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+    // to access user's cover image from req.file
+    const coverImageLocalPath = req.file?.path              //Imp -> you can directly save this coverImageLocalPath in db, but we are not doing that, since we want to upload it on cloudinary first, then save the url in db
+    if (!coverImageLocalPath) {
+        throw new apiError(400, "Cover Image is required")
+    }
+
+    // upload cover image to cloudinary
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)        //returns an object with url and other details
+    if (!coverImage.url) {
+        throw new apiError(400, "Cover Image upload failed")
+    }
+
+    // update user's cover image in db
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {coverImage: coverImage.url}  // we are taking the url from the coverImage object returned by uploadOnCloudinary
+        },
+        { new: true }
+    ).select("-password")
+
+    return res
+    .status(200)    
+    .json(new apiResponse(200, user, "Cover Image updated successfully"))
+
+})
+
+
+export {
+    registerUser,
+    loginUser, 
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage
+}

@@ -12,9 +12,6 @@ const asyncHandler = (requesthandler) => {
         // next(err) passes the error to Express's built-in error-handling middleware. learn more abt it
     }
 }
-
-
-
 export { asyncHandler }
 
 
@@ -40,4 +37,3 @@ export { asyncHandler }
 //         })
 //     }
 // }
-
