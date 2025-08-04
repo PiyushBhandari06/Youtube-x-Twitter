@@ -441,21 +441,30 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
     //aggregate pipeline to get user channel profile
     const channel = await User.aggregate([
-        {
-            $match: {username: username?.toLowerCase()}  //match the username in db
+        {   //match the username in db
+            $match: {username: username?.toLowerCase()}  
         },
         {
             $lookup: {
-                // this is used to join two collections, here we are joining User collection with Subscriptions collection
-                // this will add a new field 'subscribers' in the User object, which will contain
-                
-                from: "subscriptions",          //the model name in db, 
+                // this is used to join two collections(model), here we are joining User collection(model) with Subscriptions collection(model), It behaves kind of like a JOIN in SQL.
+                // it adds a new field 'subscribers' in the each User document(object) in User collection(model)
+                // This new field will contain an array of matched documents from the other(subscription) collection(model).
+
+                from: "subscriptions",          //the model name in db where we are looking up 
                 // remember to use lowercase & plural form of the model name, as that's how mongoose stores the model name in db
                 localField: "_id",              //the field in User model
-                foreignField: "channel",        //the field in Subscription model
-                as: "subscribers"               //the name of the field to be added in the output
+                foreignField: "channel",        //the field in Subscription model 
+                // these two fields are used to match the User collection(model) with Subscription collection(model)
+                as: "subscribers"               //the name of the field to be added in each output/user document
             }
-        },
+
+            // working of Lookup:
+            // A "document" is a single record in a collection(model).
+                // Go to the Subscription collection(model)
+                // Find all documents where subscriptions.channel === user._id
+                // Add them into a new field called subscribers in each User document.
+                // Same goes for the second $lookup, which creates subscribedTo.
+},
         {
             $lookup: {
                 from: "subscriptions",
@@ -464,20 +473,23 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 as: "subscribedTo"
             }
         },
-        {   //this will add three new fields 'subscribersCount, 'subscribedToCount', 'isSubscribed' in the User model.
+        {   
+            //this will add those created fields 'subscribersCount, 'subscribedToCount', 'isSubscribed' in each User document in User collection(model.
             $addFields:{
-                // this will add a new field 'subscribersCount' in the User object, which will contain the count of subscribers
-                subscribersCount: {$size: "$subscribers"},      //$size is a mongoDB operator that returns the size of an array(here subscribers), must use $subscribers since it's a field in the aggregation pipeline
+                subscribersCount: {$size: "$subscribers"},      //$size is a mongoDB operator that returns the size of an array(here subscribers), must use dollar->$subscribers, since it's a field in the aggregation pipeline
                 subscribedToCount: {$size: "$subscribedTo"},
-                isSubscribed: {                                 //will be true if the user is subscribed to the channel, rest frontend will handle this
+                isSubscribed: {                                 //will be true if the user is subscribed to the channel, rest frontend will handle this !
                     $cond: {
                         //i want to check whether in the document subscribers, the user is present or not
-                        if: { $in: [ req.user?._id, "$subscribers.subscriber" ] },
+                        if: { $in: [ req.user?._id, "$subscribers.subscriber" ] },      //$in: [ value, array ], checks if value is in the array.
                         then: true,
                         else: false
                     }
                 }
             } 
+            // Operator	                    What it does
+            // $lookup	        Joins another collection and adds a new array field
+            // $addFields	    Adds or modifies fields in each document in the pipeline
         },
         {   //this will only return the fields that we want in the output, rest will be removed
             $project: {
@@ -501,6 +513,83 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     // channel[0] -> will return the first object in the array, since we are matching the username, there will be only one object in the array
 })
 
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+    // req.user._id
+    // this returns mongoDb id in string type -> '688f480ac5ebddca22d462cf'
+    // mongoose converts this string type to ObjectId type -> ObjectId("688f480ac5ebddca22d462cf"), so & when we query the database we can use it directly in the query
+        // like this : const user = await User.findById(req.user._id)
+
+    // but, if we manually want to convert it to ObjectId type, we can use mongoose.Types.ObjectId(req.user._id)
+    const user = await User.aggregate([
+        {
+            $match: {_id: new mongoose.Types.ObjectId(req.user._id)}
+        },
+        {
+            $lookup:{   //(populate user's watchHistory array with video documents),
+                // └─ inside that lookup, $lookup again (populate each video's owner field with user data)
+
+                //this loopkup is looking up in the video model from User model
+                // this will add a new field 'watchHistory' in each User document(object), which will contain the watch history of the user
+                from: "videos",                           //the model name in db where we are looking up
+                localField: "watchHistory",               //the field in User model
+                foreignField: "_id",                      //the field in video model
+                as: "watchHistory",                        //the name of the field to be added in each output/user document
+                //a sub-pipline needed for the owner details, consider the model link in eraser to understand more.
+                pipeline: [
+                    {   
+                        $lookup: {   //(populate each video's owner field with user data)
+                            // └─ So to build the final response:
+                                // Get user → populate videos → inside each video, populate the owner
+
+                            // So this is a nested lookup:
+                                // First from User → Video
+                                // Then from Video → User (to get owner info)
+
+                            //this loopkup is looking up in the User model from video model
+                            //this lookup will add a new field 'owner' in each video document(object) in watchHistory
+                            from: "users",                     //the model name in db where we are looking up
+                            localField: "owner",               //the field in video model
+                            foreignField: "_id",                //the field in User model
+                            as: "owner",                        //the name of the field to be added in each output/video document
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullname: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            // way 1:
+                            // owner: {$arrayElemAt: ["$owner", 0]}      //this will convert the owner array to an object, since we are only getting one owner for each video that's why 0.
+                            // Explicit about which index you're accessing.
+                            // ⚠️ Can throw error if index out of bounds
+
+                            // way 2:
+                            $first: "$owner"                             //this will also convert the owner array to an object.
+                            // Cannot access other indexes (only the first one).
+                            // ✅ Returns null if array is empty
+
+                        }
+                    }
+                ]
+            }
+
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(new apiResponse(200, user[0].watchHistory, "User watch history fetched successfully"))
+    // user[0].watchHistory -> will return the watchHistory array of the first object
+
+})
+
+
 export {
     registerUser,
     loginUser, 
@@ -511,5 +600,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getUserWatchHistory
 }
