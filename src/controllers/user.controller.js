@@ -432,6 +432,75 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const {username} = req.params
+
+    if (!username?.trim()) {
+        throw new apiError(400, "Username is required")
+    }
+
+    //aggregate pipeline to get user channel profile
+    const channel = await User.aggregate([
+        {
+            $match: {username: username?.toLowerCase()}  //match the username in db
+        },
+        {
+            $lookup: {
+                // this is used to join two collections, here we are joining User collection with Subscriptions collection
+                // this will add a new field 'subscribers' in the User object, which will contain
+                
+                from: "subscriptions",          //the model name in db, 
+                // remember to use lowercase & plural form of the model name, as that's how mongoose stores the model name in db
+                localField: "_id",              //the field in User model
+                foreignField: "channel",        //the field in Subscription model
+                as: "subscribers"               //the name of the field to be added in the output
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {   //this will add three new fields 'subscribersCount, 'subscribedToCount', 'isSubscribed' in the User model.
+            $addFields:{
+                // this will add a new field 'subscribersCount' in the User object, which will contain the count of subscribers
+                subscribersCount: {$size: "$subscribers"},      //$size is a mongoDB operator that returns the size of an array(here subscribers), must use $subscribers since it's a field in the aggregation pipeline
+                subscribedToCount: {$size: "$subscribedTo"},
+                isSubscribed: {                                 //will be true if the user is subscribed to the channel, rest frontend will handle this
+                    $cond: {
+                        //i want to check whether in the document subscribers, the user is present or not
+                        if: { $in: [ req.user?._id, "$subscribers.subscriber" ] },
+                        then: true,
+                        else: false
+                    }
+                }
+            } 
+        },
+        {   //this will only return the fields that we want in the output, rest will be removed
+            $project: {
+                fullname: 1,
+                username: 1,
+                subscribersCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email
+            }
+        }
+    ])
+    if (!channel?.length) {
+        throw new apiError(404, "Channel does not exist")
+    }
+    return res
+    .status(200)
+    .json(new apiResponse(200, channel[0], "Channel profile fetched successfully"))
+    // channel[0] -> will return the first object in the array, since we are matching the username, there will be only one object in the array
+})
+
 export {
     registerUser,
     loginUser, 
@@ -441,5 +510,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 }
