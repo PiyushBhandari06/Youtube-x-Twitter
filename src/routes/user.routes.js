@@ -35,7 +35,8 @@ router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateU
 router.route("/update-coverimage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 // this is how we handle a controller getting data from params
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile)  //no need to use : in postman test url, it is just a placeholder
+//http://localhost:8000/users/c/pb
 
 router.route("/history").get(verifyJWT, getUserWatchHistory)
 
