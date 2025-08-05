@@ -5,6 +5,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {apiResponse} from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from 'mongoose';
 
 const generateAccessAndRefreshTokens = async (userId)=>{
     try {
@@ -47,8 +48,6 @@ const registerUser = asyncHandler( async (req,res) => {
     // In Express.js, req.body is used to access the data sent by the client in the body of the HTTP request. This is commonly used when handling: 
     // Form submissions (application/x-www-form-urlencoded) & JSON data (application/json)   
     const {fullname, email, username, password} = req.body
-    // console.log("email:", email);  //checkpoint !
-    // console.log(req.body);
 
     
 
@@ -222,9 +221,16 @@ const logoutUser = asyncHandler(async (req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,   //find query
         {               //update this
-            $set: {                         //mongoDb operator -$set, it updates,sets the values given to it
-                refreshToken: undefined
+
+            // $set: {                         //mongoDb operator -$set, it updates,sets the values given to it
+            //     refreshToken: undefined     //Field is still there but value is undefined
+            // }
+
+            $unset: {                         //mongoDb operator -$unset, it removes the fields given to it
+                refreshToken: 1               //Field is deleted
+                //1 is used to indicate that we want to remove this field, you can also use true or any other value, but 1 is a convention
             }
+                                              
         },
         {   //what this does is basically, returns the new/updated value, else original will be sent with old refreshToken value
             new: true
@@ -273,13 +279,14 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
             }
             // if same? : return a new refreshToken to user & again save it in db(generatAccessAndRefreshToken method will handle all this)
         
-            const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+            const {accessToken, refreshToken:newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
         
             const options = {
                 httpOnly:true,
                 secure: true
             }
-        
+
+            // console.log("Generated Refresh Token:", newRefreshToken);
             return res
             .status(200)
             .cookie("accessToken", accessToken, options)
@@ -402,6 +409,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 const updateUserCoverImage = asyncHandler(async (req, res) => {
     // to access user's cover image from req.file
     const coverImageLocalPath = req.file?.path              //Imp -> you can directly save this coverImageLocalPath in db, but we are not doing that, since we want to upload it on cloudinary first, then save the url in db
+    // console.log("req.file:", req.file);
     if (!coverImageLocalPath) {
         throw new apiError(400, "Cover Image is required")
     }
@@ -500,7 +508,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
-                email
+                email:1
             }
         }
     ])
@@ -570,7 +578,7 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
                             // ⚠️ Can throw error if index out of bounds
 
                             // way 2:
-                            $first: "$owner"                             //this will also convert the owner array to an object.
+                            owner: { $first: "$owner" }                //this will also convert the owner array to an object.
                             // Cannot access other indexes (only the first one).
                             // ✅ Returns null if array is empty
 
