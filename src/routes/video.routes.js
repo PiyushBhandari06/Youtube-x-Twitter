@@ -20,7 +20,7 @@ router
         upload.fields([
             {
                 name: "videoFile",
-                maxCount: 1,
+                maxCount: 1,            //maxCount is used to limit the number of files uploaded for this field at at time
             },
             {
                 name: "thumbnail",
