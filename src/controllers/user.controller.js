@@ -84,7 +84,7 @@ const registerUser = asyncHandler( async (req,res) => {
     // console.log(req.files);
     
     // modern way:-                                                  //maybe we have that more access or maybe we may not,so always use -> ?(optinal), its a good practice !
-    const avatarLocalPath = req.files?.avatar[0]?.path;              //we used modern way in this, since we are handling the condition it must satisy ahead, unlike coverImage, that's why in coverImage we had to go with classic conditional way.
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;              //we used modern way in this, since we are handling the condition it must satisy ahead, unlike coverImage, that's why in coverImage we had to go with classic conditional way.
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
 
