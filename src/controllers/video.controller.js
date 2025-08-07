@@ -393,15 +393,15 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
     //⚪
     // Deletes all Like documents related to this video.
-    // await Like.deleteMany({
-    //     video: videoId
-    // })
+    await Like.deleteMany({
+        video: videoId
+    })
 
     //⚪
     // Deletes all Comment documents related to this video.
-    // await Comment.deleteMany({
-    //     video: videoId,
-    // })
+    await Comment.deleteMany({
+        video: videoId,
+    })
     
     return res.status(200).json(new apiResponse(200, {}, "Video deleted successfully"));
     // {} -> there is simply no data to send back after a successful deletion.

@@ -92,11 +92,11 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     await Comment.findByIdAndDelete(commentId);
 
-    //
-    // await Like.deleteMany({
-    //     comment: commentId,
-    //     likedBy: req.user
-    // });
+    //⚪
+    await Like.deleteMany({
+        comment: commentId,
+        likedBy: req.user
+    });
 
     return res
         .status(200)
