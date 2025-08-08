@@ -364,7 +364,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 })
 
 //delete video
-const deleteVideo = asyncHandler(async (req, res) => {
+const deleteAVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
     if (!isValidObjectId(videoId)) {
@@ -447,6 +447,6 @@ export {
     publishAVideo,
     getVideoById,
     updateVideoDetails,
-    deleteVideo,
+    deleteAVideo,
     togglePublishStatus
 }

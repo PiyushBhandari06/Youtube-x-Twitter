@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-    deleteVideo,
+    deleteAVideo,
     getAllVideos,
     getVideoById,
     publishAVideo,
@@ -34,7 +34,7 @@ router
 router
     .route("/:videoId")
     .get(getVideoById)
-    .delete(deleteVideo)
+    .delete(deleteAVideo)
     .patch(upload.single("thumbnail"), updateVideoDetails);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);

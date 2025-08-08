@@ -29,7 +29,6 @@ const createTweet = asyncHandler(async (req, res) => {
 
 
 //update tweet
-console.log("updateTweet called");
 const updateTweet = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { tweetId } = req.params;
