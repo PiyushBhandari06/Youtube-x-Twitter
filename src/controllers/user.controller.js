@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 //asynchandler is the wrapper we are using here to handle web requests! it is a High Order Function
 import {apiError} from "../utils/apiError.js"
 import {User} from "../models/user.model.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {uploadOnCloudinary, deleteOnCloudinary} from "../utils/cloudinary.js"
 import {apiResponse} from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from 'mongoose';
@@ -382,26 +382,37 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     // upload avatar to cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath)        //returns an object with url and other details
-    if (!avatar.url) {
+    if (!avatar?.url) {
         throw new apiError(400, "Avatar upload failed")
     }
     
-    // 🔴TODO :Delete the old avatar from cloudinary if it exists, only after uploading the new avatar.
+    // Delete the old avatar from cloudinary if it exists, only after uploading the new avatar.
     // This can be done by storing the old avatar url in user model and then deleting it.
-    
+    const user = await User.findById(req.user?._id).select("avatar");       //select("avatar") means only the avatar field will be retrieved
+
+    const avatarToDelete = user?.avatar?.public_id;
 
     // update user's avatar in db
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set: {avatar: avatar.url}  // we are taking the url from the avatar object returned by uploadOnCloudinary
+            $set:{ 
+                avatar:{                            // we are taking the url from the avatar object returned by uploadOnCloudinary
+                    public_id: avatar.public_id,
+                    url: avatar.secure_url,         // using secure_url for https
+                }
+            }  
         },
         { new: true }
     ).select("-password")
 
+    if (avatarToDelete && updatedUser.avatar.public_id) {       //This checks if there was an old avatar to delete (avatarToDelete) and if the update was successful and the new avatar has a public_id.
+        await deleteOnCloudinary(avatarToDelete);
+    }
+
     return res
     .status(200)    
-    .json(new apiResponse(200, user, "Avatar updated successfully"))
+    .json(new apiResponse(200, updatedUser, "Avatar updated successfully"))
 
 })
 
@@ -420,22 +431,33 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new apiError(400, "Cover Image upload failed")
     }
 
-    // 🔴TODO :Delete the old coverImage from cloudinary if it exists, only after uploading the new coverImage.
+    // Delete the old coverImage from cloudinary if it exists, only after uploading the new coverImage.
     // This can be done by storing the old coverImage url in user model and then deleting it.
+     const user = await User.findById(req.user?._id).select("coverImage");
 
+    const coverImageToDelete = user?.coverImage?.public_id;
 
     // update user's cover image in db
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set: {coverImage: coverImage.url}  // we are taking the url from the coverImage object returned by uploadOnCloudinary
+            $set: {
+                coverImage: {                               // we are taking the url from the coverImage object returned by uploadOnCloudinary
+                    public_id: coverImage.public_id,
+                    url: coverImage.secure_url
+                }
+            }      
         },
         { new: true }
     ).select("-password")
 
+    if (coverImageToDelete && updatedUser.coverImage.public_id) {
+        await deleteOnCloudinary(coverImageToDelete);
+    }
+
     return res
     .status(200)    
-    .json(new apiResponse(200, user, "Cover Image updated successfully"))
+    .json(new apiResponse(200, updatedUser, "Cover Image updated successfully"))
 
 })
 
@@ -506,7 +528,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 subscribersCount: 1,
                 subscribedToCount: 1,
                 isSubscribed: 1,
-                avatar: 1,
+                "avatar.url": 1,
                 coverImage: 1,
                 email:1
             }
@@ -564,7 +586,7 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
                                     $project: {
                                         fullname: 1,
                                         username: 1,
-                                        avatar: 1,
+                                        "avatar.url": 1,
                                     }
                                 }
                             ]

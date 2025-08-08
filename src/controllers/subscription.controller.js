@@ -91,7 +91,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
                     _id: 1,
                     username: 1,
                     fullname: 1,
-                    avatar: 1,
+                    "avatar.url": 1,
                     latestVideo: 1
                 },
             },
@@ -169,7 +169,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                     _id: 1,
                     username: 1,
                     fullname: 1,
-                    avatar: 1,
+                    "avatar.url": 1,
                     subscribedToSubscriber: 1,
                     subscribersCount: 1,
                 },

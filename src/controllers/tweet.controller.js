@@ -122,7 +122,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
                     {                       //“From the matched user document, return only username and avatar fields. Exclude everything else.”
                         $project: {
                             username: 1,
-                            avatar: 1,
+                            "avatar.url": 1,
                         },
                     },
                 ],

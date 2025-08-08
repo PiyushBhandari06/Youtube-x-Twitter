@@ -237,8 +237,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                     $project: {
                         //It controls which fields are included or excluded in the documents passed along the aggregation pipeline,Fields not listed here will be excluded (unless you explicitly include them).
                         username: 1,                    //Setting a field to 1 means include this field.
-                        // "avatar.url": 1,             //MongoDB expects avatar to be an object that has a url key. But your avatar is just a string, so it has no url property, and this projection returns nothing.
-                        avatar: 1,
+                        "avatar.url": 1,
                         subscribersCount: 1,
                         isSubscribed: 1
                     }
