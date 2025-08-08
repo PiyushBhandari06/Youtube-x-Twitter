@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const subscriptionSchema = new Schema({
-    susbcriber:{
+    subscriber:{
         type: Schema.Types.ObjectId,           //the one who is subscribing
         ref: "User"
     },
@@ -11,5 +11,7 @@ const subscriptionSchema = new Schema({
     }
 },{timestamps: true})
 
+subscriptionSchema.index({ subscriber: 1, channel: 1 }, { unique: true }); 
+//means the combination of subscriber and channel must be unique, { unique: true } tells MongoDB to enforce this at the database level.
 
 export const subscription = mongoose.model("subscription", subscriptionSchema)
