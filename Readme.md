@@ -4,6 +4,13 @@
 
 This is a ``YOUTUBE + TWITTER`` backend project that covers allmost all the functionalities of youtube and also combines the tweet functionality from twitter into it. Find more about this project in the documentaion below.
 
+## Important links
+
+| Content            | Link                                                                        |
+| -------------------| ----------------------------------------------------------------------------|
+| API Documentation  | [click here]()    |
+| Model              | [click here ](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)         |
+
 ## Features
 
 ### User Management:
