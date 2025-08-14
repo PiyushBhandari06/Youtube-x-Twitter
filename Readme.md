@@ -9,7 +9,7 @@ This is a ``YOUTUBE + TWITTER`` backend project that covers allmost all the func
 | Content            | Link                                                                        |
 | -------------------| ----------------------------------------------------------------------------|
 | API Documentation  | [click here]()    |
-| Model              | [click here ](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)         |
+| Model              | [click here ]([https://app.eraser.io/workspace/EQF3kJ5DH4ACrFBXngND])         |
 
 ## Features
 
