@@ -4,8 +4,8 @@ import {apiError} from "../utils/apiError.js"
 import { Video } from "../models/video.model.js";
 import {apiResponse} from "../utils/apiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import {Like} from "../models/like.model.js"
 
-//add a comment to a video
 const addComment = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { content } = req.body;
@@ -34,9 +34,6 @@ const addComment = asyncHandler(async (req, res) => {
         .json(new apiResponse(201, comment, "Comment added successfully"));
 })
 
-
-
-//update a comment
 const updateComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const { content } = req.body;
@@ -75,9 +72,6 @@ const updateComment = asyncHandler(async (req, res) => {
         );
 })
 
-
-
-//delete a comment
 const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
 
@@ -92,7 +86,6 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     await Comment.findByIdAndDelete(commentId);
 
-    //⚪
     await Like.deleteMany({
         comment: commentId,
         likedBy: req.user
@@ -105,9 +98,6 @@ const deleteComment = asyncHandler(async (req, res) => {
         );
 })
 
-
-
-//get all comments for a video
 const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
@@ -117,39 +107,39 @@ const getVideoComments = asyncHandler(async (req, res) => {
         throw new apiError(404, "Video not found");
     }
 
-    const commentsAggregate = Comment.aggregate([                   //Start a MongoDB aggregation pipeline on the Comment collection
+    const commentsAggregate = Comment.aggregate([                   
         {
             $match: {
-                video: new mongoose.Types.ObjectId(videoId)         //Only fetch comments that belong to the given videoId.
+                video: new mongoose.Types.ObjectId(videoId)         
             }
         },
         {
-            $lookup: {                                              //Join the users collection, to get user details for each comment's owner
+            $lookup: {                                              
                 from: "users",
-                localField: "owner",                                //owner field in comment(current) Model(collection)
-                foreignField: "_id",                                //_id(mongoDBid) of User Model
-                as: "owner"                                         //The result is added as an array owner.
+                localField: "owner",                                
+                foreignField: "_id",                                
+                as: "owner"                                         
             }
         },
         {
-            $lookup: {                                               //Join the likes collection, to find all likes related to the comment.
+            $lookup: {                                               
                 from: "likes",
-                localField: "_id",                                   //_id field in comment(current) model
-                foreignField: "comment",                             //comment field in like model
-                as: "likes"                                          //The result is added as an array likes.
+                localField: "_id",                                   
+                foreignField: "comment",                             
+                as: "likes"                                          
             }
         },
         {
             $addFields: {
                 likesCount: {
-                    $size: "$likes"                                  //Number of likes on the comment (just counts the array).
+                    $size: "$likes"                                  
                 },
                 owner: {
-                    $first: "$owner"                                  //Takes the first (and only) user from the owner array, to flatten it.
+                    $first: "$owner"                                  
                 },
-                isLiked: {                                           //Tries to check if the current user is in the list of users who liked the comment.
+                isLiked: {                                           
                     $cond: {    
-                        //⚪
+
                         if: { $in: [req.user?._id,{ $ifNull: ["$likes.likedBy", [] ] }]}, 
                         then: true,
                         else: false
@@ -158,8 +148,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $sort: {                //Sort comments so that the most recent ones appear first.
-                createdAt: -1       //descending
+            $sort: {                
+                createdAt: -1       
             }
         },
         {
@@ -188,8 +178,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
         .status(200)
         .json(new apiResponse(200, comments, "Comments fetched successfully"));
 })
-
-
 
 export {
     addComment, 
