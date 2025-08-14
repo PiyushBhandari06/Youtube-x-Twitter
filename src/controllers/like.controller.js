@@ -4,9 +4,6 @@ import {apiError} from "../utils/apiError.js"
 import {apiResponse} from "../utils/apiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
-
-
-//toggle like on video
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
 
@@ -37,9 +34,6 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, { videoId, isLiked: true }, "Video Like added"));
 })
 
-
-
-//toggle like on comment
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const {commentId} = req.params
 
@@ -70,15 +64,11 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, {commentId, isLiked: true }, "Comment Like added"));
 })
 
-
-
-//toggle like on tweet
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     if (!isValidObjectId(tweetId)) {
         throw new apiError(400, "Invalid tweetId");
     }
-
 
     const likedAlready = await Like.findOne({
         tweet: tweetId,
@@ -103,39 +93,36 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, { tweetId, isLiked: true }, "Tweet Like added"));
 })
 
-
-
-//get all liked videos
 const getLikedVideos = asyncHandler(async (req, res) => {
     const likedVideosAggegate = await Like.aggregate([
         {
-            $match: {                                                       //Find all documents in the likes collection where the logged-in user has liked something
-                likedBy: new mongoose.Types.ObjectId(req.user?._id),        //likedBy is converted to ObjectId for matching.
+            $match: {                                                       
+                likedBy: new mongoose.Types.ObjectId(req.user?._id),        
             },
         },
         {
-            $lookup: {                              //Join the videos collection
+            $lookup: {                              
                 from: "videos",
-                localField: "video",                //video field in Like(current) Model
-                foreignField: "_id",                //_id(mongoDBid) of Video model
-                as: "likedVideo",                   //The result is saved in a new field likedVideo (as an array).
-                pipeline: [                 //sub-pipeline
+                localField: "video",                
+                foreignField: "_id",                
+                as: "likedVideo",                   
+                pipeline: [                 
                     {
-                        $lookup: {                  //Join the User collection,to find the user (owner) of the video from the users collection.
+                        $lookup: {                  
                             from: "users",
-                            localField: "owner",    //owner field in Like(current) Model
-                            foreignField: "_id",    //_id(mongoDBid) of User model
+                            localField: "owner",    
+                            foreignField: "_id",    
                             as: "ownerDetails",     
                         },
                     },
                     {
-                        $unwind: "$ownerDetails",       //$unwind turns the array into a single object
+                        $unwind: "$ownerDetails",       
                     },
                 ],
             },
         },
         {
-            $unwind: "$likedVideo",     //Unwinds the likedVideo array into individual documents so each like shows one video cleanly.
+            $unwind: "$likedVideo",     
         },
         {
             $sort: {
@@ -172,8 +159,6 @@ const getLikedVideos = asyncHandler(async (req, res) => {
             new apiResponse(200,likedVideosAggegate,"liked videos fetched successfully")
         );
 })
-
-
 
 export {
     toggleCommentLike,
