@@ -4,7 +4,6 @@ import {apiError} from "../utils/apiError.js"
 import {apiResponse} from "../utils/apiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
-//create tweet
 const createTweet = asyncHandler(async (req, res) => {
     const { content } = req.body;
 
@@ -26,9 +25,6 @@ const createTweet = asyncHandler(async (req, res) => {
         );
 })
 
-
-
-//update tweet
 const updateTweet = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { tweetId } = req.params;
@@ -41,12 +37,12 @@ const updateTweet = asyncHandler(async (req, res) => {
         throw new apiError(400, "Invalid tweetId");
     }
 
-    const tweet = await Tweet.findById(tweetId);                         //Fetches the tweet document from MongoDB using the given tweetId.
+    const tweet = await Tweet.findById(tweetId);                         
     if (!tweet) {
         throw new apiError(404, "Tweet not found");
     }
 
-    if (tweet?.owner.toString() !== req.user?._id.toString()) {         //Compares the tweet's owner ID with the logged-in user (req.user._id).
+    if (tweet?.owner.toString() !== req.user?._id.toString()) {         
         throw new apiError(400, "only owner can edit thier tweet");
     }
 
@@ -54,10 +50,10 @@ const updateTweet = asyncHandler(async (req, res) => {
         tweetId,
         {
             $set: {
-                content,                //Updates the tweet's content using MongoDB's $set operator.
+                content,                
             },
         },
-        { new: true }                   //updated tweet is returned
+        { new: true }                   
     );
 
     if (!newTweet) {
@@ -69,9 +65,6 @@ const updateTweet = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, newTweet, "Tweet updated successfully"));
 })
 
-
-
-//delete tweet
 const deleteTweet = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
 
@@ -95,9 +88,6 @@ const deleteTweet = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, {tweetId}, "Tweet deleted successfully"));
 })
 
-
-
-//get user tweets
 const getUserTweets = asyncHandler(async (req, res) => {
     const { userId } = req.params;
 
@@ -107,18 +97,18 @@ const getUserTweets = asyncHandler(async (req, res) => {
 
     const tweets = await Tweet.aggregate([                      
         {
-            $match: {                                               //Filters tweets where the owner matches the given userId.
+            $match: {                                               
                 owner: new mongoose.Types.ObjectId(userId),
             },
         },
         {
-            $lookup: {                                              //Looks up the user info for each tweet owner.
+            $lookup: {                                              
                 from: "users",
-                localField: "owner",                                //owner field(document) from tweet model(collection)
-                foreignField: "_id",                                //_id (mongoDBid) of the owner model(collection)
+                localField: "owner",                                
+                foreignField: "_id",                                
                 as: "ownerDetails",
-                pipeline: [                 //this is sub-pipeline
-                    {                       //“From the matched user document, return only username and avatar fields. Exclude everything else.”
+                pipeline: [                 
+                    {                       
                         $project: {
                             username: 1,
                             "avatar.url": 1,
@@ -128,14 +118,14 @@ const getUserTweets = asyncHandler(async (req, res) => {
             },
         },
         {
-            $lookup: {                                              //Looks up the tweet field in like model
+            $lookup: {                                              
                 from: "likes",
-                localField: "_id",                                  //id field in tweet(current)
-                foreignField: "tweet",                              //tweet field in like model
+                localField: "_id",                                  
+                foreignField: "tweet",                              
                 as: "likeDetails",
                 pipeline: [
                     {
-                        $project: {           //“From the matched user document, return only Likedby field. Exclude everything else.”
+                        $project: {           
                             likedBy: 1,
                         },
                     },
@@ -144,16 +134,16 @@ const getUserTweets = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                likesCount: {                       // Total likes for each tweet
+                likesCount: {                       
                     $size: "$likeDetails",
                 },
-                ownerDetails: {                     //Unwraps the array from $lookup
-                    //Taking the first (and only) element out of the array so you’re left with just the object, not the array.
+                ownerDetails: {                     
+
                     $first: "$ownerDetails",
                 },
-                isLiked: {                          //Checks if the logged-in user liked the tweet
+                isLiked: {                          
                     $cond: {
-                        //⚪
+
                         if: {$in: [req.user?._id,{ $ifNull: ["$subscribers.subscriber", [] ] }]},
                         then: true,
                         else: false
@@ -162,8 +152,8 @@ const getUserTweets = asyncHandler(async (req, res) => {
             },
         },
         {
-            $sort: {            //sorty by Most recent tweets first.
-                createdAt: -1   //descending
+            $sort: {            
+                createdAt: -1   
             }
         },
         {
@@ -181,8 +171,6 @@ const getUserTweets = asyncHandler(async (req, res) => {
         .status(200)
         .json(new apiResponse(200, tweets, "Tweets fetched successfully"));
 })
-
-
 
 export {
     createTweet,
