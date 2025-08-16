@@ -8,7 +8,7 @@ This is a ``YOUTUBE + TWITTER`` backend project that covers allmost all the func
 
 | Content            | Link                                                                        |
 | -------------------| ----------------------------------------------------------------------------|
-| API Documentation  | [click here]()    |
+| API Documentation  | [click here](https://documenter.getpostman.com/view/47255687/2sB3BHkUXg)    |
 | Model              | [click here ](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)         |
 
 ## Features
