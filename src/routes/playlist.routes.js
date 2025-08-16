@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
     addVideoToPlaylist,
     createPlaylist,
@@ -7,12 +7,12 @@ import {
     getUserPlaylists,
     removeVideoFromPlaylist,
     updatePlaylist,
-} from "../controllers/playlist.controller.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
+} from "../controllers/playlist.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.use(verifyJWT); // This Applies verifyJWT middleware to all routes in this file
+router.use(verifyJWT);
 
 router.route("/").post(createPlaylist)
 

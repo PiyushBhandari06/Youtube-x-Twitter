@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
     deleteAVideo,
     getAllVideos,
@@ -11,7 +11,7 @@ import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
 
 const router = Router();
-router.use(verifyJWT); //This applies verifyJWT middleware to all routes in this file
+router.use(verifyJWT);
 
 router
     .route("/")
@@ -20,7 +20,7 @@ router
         upload.fields([
             {
                 name: "videoFile",
-                maxCount: 1,            //maxCount is used to limit the number of files uploaded for this field at at time
+                maxCount: 1,
             },
             {
                 name: "thumbnail",
